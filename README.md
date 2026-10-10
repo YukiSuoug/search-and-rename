@@ -8,6 +8,26 @@ VSCode 自带的重命名只能一个个来，原生搜索的「替换」只改�
 
 ---
 
+## 安装
+
+### 从 GitHub Releases 下载（推荐）
+
+1. 打开 **[最新 Release](https://github.com/YukiSuoug/search-and-rename/releases/latest)**，
+   在 Assets 里下载 `search-and-rename-x.y.z.vsix`；
+2. 在 VSCode 里按 `Ctrl+Shift+X` 打开扩展面板 → 点右上角 `…` → **从 VSIX 安装…** → 选中刚下载的文件；
+3. 装完若没立刻生效，按 `Ctrl+Shift+P` 执行 `Developer: Reload Window`。
+
+也可以用命令行装（在 `.vsix` 所在目录执行）：
+
+`code --install-extension search-and-rename-0.1.0.vsix`
+
+### 从扩展市场安装
+
+在 VSCode 扩展面板搜索 **Search & Rename**。
+> 若搜不到，说明尚未上架，用上面的 VSIX 方式即可。
+
+---
+
 ## 设计取向
 
 四条取舍决定了它长成现在这样：
