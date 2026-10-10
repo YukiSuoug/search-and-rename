@@ -1,0 +1,253 @@
+{
+  "name": "search-and-rename",
+  "displayName": "Search & Rename",
+  "description": "在资源管理器右键，按名称批量重命名文件与文件夹。树形预览、冲突拦截、一次撤销 —— 只做这一件事。",
+  "version": "0.1.0",
+  "publisher": "AntGent",
+  "license": "MIT",
+  "author": {
+    "name": "AntGent"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/YukiSuoug/search-and-rename.git"
+  },
+  "bugs": {
+    "url": "https://github.com/YukiSuoug/search-and-rename/issues"
+  },
+  "homepage": "https://github.com/YukiSuoug/search-and-rename#readme",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "keywords": [
+    "rename",
+    "batch-rename",
+    "bulk-rename",
+    "find-and-replace",
+    "file-name",
+    "folder",
+    "refactor"
+  ],
+  "icon": "resources/icon.png",
+  "galleryBanner": {
+    "color": "#007ACC",
+    "theme": "dark"
+  },
+  "main": "./out/extension.js",
+  "activationEvents": [
+    "onView:searchRename.panel",
+    "onCommand:searchRename.quickRename",
+    "onCommand:searchRename.openPanel"
+  ],
+  "contributes": {
+    "commands": [
+      {
+        "command": "searchRename.openPanel",
+        "title": "打开重命名面板",
+        "category": "Search & Rename",
+        "icon": "$(edit)"
+      },
+      {
+        "command": "searchRename.quickRename",
+        "title": "批量重命名名称…",
+        "category": "Search & Rename",
+        "icon": "$(replace-all)"
+      },
+      {
+        "command": "searchRename.switchToRename",
+        "title": "切换到名称重命名",
+        "category": "Search & Rename",
+        "icon": "$(edit)"
+      },
+      {
+        "command": "searchRename.switchToContent",
+        "title": "切换到内容替换",
+        "category": "Search & Rename",
+        "icon": "$(replace-all)"
+      },
+      {
+        "command": "searchRename.refreshPreview",
+        "title": "刷新预览",
+        "category": "Search & Rename",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "searchRename.executeRename",
+        "title": "执行重命名",
+        "category": "Search & Rename",
+        "icon": "$(check)"
+      },
+      {
+        "command": "searchRename.undoLast",
+        "title": "撤销上次批量重命名",
+        "category": "Search & Rename",
+        "icon": "$(discard)"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "searchAndRename",
+          "title": "Search & Rename",
+          "icon": "resources/icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "searchAndRename": [
+        {
+          "id": "searchRename.panel",
+          "name": "查找与重命名",
+          "type": "webview"
+        }
+      ]
+    },
+    "menus": {
+      "explorer/context": [
+        {
+          "command": "searchRename.quickRename",
+          "when": "explorerResourceIsFolder || resourceExtname",
+          "group": "searchRename@1"
+        },
+        {
+          "command": "searchRename.openPanel",
+          "group": "searchRename@2"
+        }
+      ],
+      "view/title": [
+        {
+          "command": "searchRename.refreshPreview",
+          "when": "view == searchRename.panel && searchRename.mode == 'rename'",
+          "group": "navigation@1"
+        },
+        {
+          "command": "searchRename.executeRename",
+          "when": "view == searchRename.panel && searchRename.mode == 'rename' && searchRename.hasPreview",
+          "group": "navigation@2"
+        },
+        {
+          "command": "searchRename.undoLast",
+          "when": "view == searchRename.panel && searchRename.canUndo",
+          "group": "navigation@3"
+        },
+        {
+          "command": "searchRename.switchToRename",
+          "when": "view == workbench.view.search && searchRename.mode != 'rename'",
+          "group": "navigation@1"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "searchRename.executeRename",
+          "when": "searchRename.mode == 'rename'"
+        },
+        {
+          "command": "searchRename.refreshPreview",
+          "when": "searchRename.mode == 'rename'"
+        }
+      ]
+    },
+    "keybindings": [
+      {
+        "command": "searchRename.quickRename",
+        "key": "ctrl+alt+r",
+        "mac": "cmd+alt+r",
+        "when": "!searchRename.inputFocus"
+      },
+      {
+        "command": "searchRename.openPanel",
+        "key": "ctrl+alt+shift+r",
+        "mac": "cmd+alt+shift+r",
+        "when": "!searchRename.inputFocus"
+      },
+      {
+        "command": "searchRename.openPanel",
+        "key": "ctrl+alt+p",
+        "mac": "cmd+alt+p",
+        "when": "!searchRename.inputFocus"
+      },
+      {
+        "command": "-workbench.action.showAllSymbols",
+        "key": "ctrl+alt+shift+r",
+        "mac": "cmd+alt+shift+r"
+      }
+    ],
+    "configuration": {
+      "title": "Search & Rename",
+      "properties": {
+        "searchAndRename.matchTarget": {
+          "type": "string",
+          "enum": [
+            "both",
+            "filesOnly",
+            "foldersOnly"
+          ],
+          "enumDescriptions": [
+            "同时匹配文件名与文件夹名",
+            "只匹配文件名",
+            "只匹配文件夹名"
+          ],
+          "default": "both",
+          "description": "名称匹配的目标范围"
+        },
+        "searchAndRename.preserveExtension": {
+          "type": "boolean",
+          "default": true,
+          "description": "重命名文件名时保留扩展名，只替换主体部分。"
+        },
+        "searchAndRename.respectExclude": {
+          "type": "boolean",
+          "default": true,
+          "description": "遵循 files.exclude / search.exclude 设置。"
+        },
+        "searchAndRename.extraExclude": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [
+            "**/node_modules/**",
+            "**/.git/**",
+            "**/dist/**",
+            "**/out/**"
+          ],
+          "description": "额外排除的 glob 列表（相对于工作区根目录）。"
+        },
+        "searchAndRename.confirmThreshold": {
+          "type": "number",
+          "default": 15,
+          "description": "批量重命名条目数超过该值时要求二次确认。"
+        },
+        "searchAndRename.maxEntries": {
+          "type": "number",
+          "default": 200000,
+          "description": "扫描条目数上限，超出则中止并提示缩小范围。"
+        },
+        "searchAndRename.defaultCaseSensitive": {
+          "type": "boolean",
+          "default": false,
+          "description": "名称匹配默认是否区分大小写。"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "vscode:prepublish": "npm run compile",
+    "test:core": "node ./out/test/core.test.js",
+    "test:snapshot": "node ./out/test/snapshot.js",
+    "test:smoke": "node ./out/test/smoke.js",
+    "check:layout": "node tools/layout-check.mjs",
+    "test": "npm run compile && npm run test:core && npm run test:snapshot && npm run test:smoke"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "@types/vscode": "^1.85.0",
+    "@vscode/vsce": "^4.0.0",
+    "typescript": "^5.4.0"
+  }
+}

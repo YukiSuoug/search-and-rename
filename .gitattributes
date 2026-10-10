@@ -1,0 +1,9 @@
+# 仓库与工作区统一用 LF。
+#
+# 显式写 eol=lf 而不只依赖 core.autocrlf：Git for Windows 默认在 system 级
+# 设了 core.autocrlf=true，会把检出内容转成 CRLF —— 于是"什么都没改"却显示
+# 整个文件都变了。钉死 LF 可以彻底避免这类噪声。
+* text=auto eol=lf
+
+*.png binary
+*.vsix binary

@@ -1,0 +1,7 @@
+node_modules/
+out/
+*.vsix
+.DS_Store
+
+# 工具脚本产出的临时文件（layout-check 的截图等）
+tmp-*

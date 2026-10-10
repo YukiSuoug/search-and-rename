@@ -1,0 +1,20 @@
+*.vsix
+.DS_Store
+.vscode
+
+# ⚠️ 千万不要在这里排除 out/。
+#
+# out/ 是编译产物，也是 VSIX 里**唯一的可执行代码**。排除它 = 发布一个空扩展，
+# 用户装上后表现为「完全没有任何反应」；而且 F5 调试用的是工作区里的 out/，
+# 所以本地一切正常、只有装到别人机器上才炸。这类"静默失败"极难排查。
+#
+# 下面排除的都是「不需要发给用户」的东西：
+node_modules
+src
+tools
+out/test
+tsconfig.json
+.gitignore
+package-lock.json
+tmp-*
+**/*.map

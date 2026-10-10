@@ -1,0 +1,586 @@
+:root {
+  --pad: 10px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+/*
+ * ⚠️ 必须显式处理 [hidden]。
+ *
+ * HTML 的 `hidden` 属性只靠**浏览器默认样式表**的 `[hidden] { display: none }` 生效，
+ * 而默认样式表的优先级低于作者样式 —— 只要本文件对同一元素写了任何 `display`
+ * （本项目里 `.empty { display: flex }`、`.list-head { display: flex }` 都是），
+ * `el.hidden = true` 就**完全失效**。
+ *
+ * 症状：`.empty` 因为 `flex: 1 1 auto` 被撑满剩余空间，那条提示永远钉在列表底部
+ * —— 就是用户看到的「没有匹配到可重命名，一直固定在下面」。
+ *
+ * 与其逐个补 `xxx[hidden] { display: none }`（已经漏了两次），不如全局兜底。
+ */
+[hidden] {
+  display: none !important;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  overflow: hidden;
+  font-family: var(--vscode-font-family);
+  font-size: var(--vscode-font-size, 13px);
+  color: var(--vscode-foreground);
+  background: transparent;
+}
+
+#root {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+/* ---------------- tabs ---------------- */
+
+.tabs {
+  display: flex;
+  flex: 0 0 auto;
+  border-bottom: 1px solid var(--vscode-panel-border, rgba(128, 128, 128, 0.3));
+}
+
+.tab {
+  flex: 1;
+  padding: 6px 8px;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--vscode-descriptionForeground);
+  font-family: inherit;
+  font-size: inherit;
+  cursor: pointer;
+}
+
+.tab:hover {
+  background: var(--vscode-toolbar-hoverBackground, rgba(128, 128, 128, 0.12));
+}
+
+.tab[aria-selected='true'] {
+  color: var(--vscode-foreground);
+  border-bottom-color: var(--vscode-focusBorder, #007acc);
+}
+
+/* ---------------- pane ---------------- */
+
+.pane {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding: var(--pad);
+  gap: 8px;
+  overflow: hidden;
+}
+
+.pane[hidden] {
+  display: none;
+}
+
+.fields {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 0 0 auto;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.field label {
+  font-size: 11px;
+  color: var(--vscode-descriptionForeground);
+}
+
+input[type='text'],
+select {
+  width: 100%;
+  padding: 4px 6px;
+  background: var(--vscode-input-background);
+  color: var(--vscode-input-foreground);
+  border: 1px solid var(--vscode-input-border, transparent);
+  border-radius: 2px;
+  font-family: inherit;
+  font-size: inherit;
+  outline: none;
+}
+
+input[type='text']:focus,
+select:focus {
+  border-color: var(--vscode-focusBorder, #007acc);
+}
+
+.hint {
+  font-size: 11px;
+  color: var(--vscode-descriptionForeground);
+  line-height: 1.5;
+}
+
+.hint code {
+  padding: 0 3px;
+  background: var(--vscode-textCodeBlock-background, rgba(128, 128, 128, 0.15));
+  border-radius: 2px;
+  font-family: var(--vscode-editor-font-family, monospace);
+}
+
+/* ---------------- options ---------------- */
+
+.options {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  flex: 0 0 auto;
+}
+
+.toggle {
+  min-width: 26px;
+  height: 22px;
+  padding: 0 5px;
+  background: transparent;
+  color: var(--vscode-foreground);
+  border: 1px solid var(--vscode-input-border, rgba(128, 128, 128, 0.4));
+  border-radius: 2px;
+  font-family: inherit;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.toggle:hover {
+  background: var(--vscode-toolbar-hoverBackground, rgba(128, 128, 128, 0.15));
+}
+
+.toggle.on {
+  background: var(--vscode-inputOption-activeBackground, rgba(0, 122, 204, 0.4));
+  color: var(--vscode-inputOption-activeForeground, #fff);
+  border-color: var(--vscode-inputOption-activeBorder, #007acc);
+}
+
+.sep {
+  width: 1px;
+  height: 16px;
+  margin: 0 3px;
+  background: var(--vscode-panel-border, rgba(128, 128, 128, 0.3));
+}
+
+.chk {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 11px;
+  color: var(--vscode-descriptionForeground);
+  cursor: pointer;
+  user-select: none;
+}
+
+/* ---------------- actions ---------------- */
+
+.actions {
+  display: flex;
+  gap: 6px;
+  flex: 0 0 auto;
+}
+
+.actions button,
+#btn-native {
+  flex: 0 0 auto;
+  padding: 4px 10px;
+  border: 1px solid transparent;
+  border-radius: 2px;
+  font-family: inherit;
+  font-size: inherit;
+  cursor: pointer;
+  background: var(--vscode-button-secondaryBackground, rgba(128, 128, 128, 0.25));
+  color: var(--vscode-button-secondaryForeground, var(--vscode-foreground));
+}
+
+.actions button:hover:not(:disabled) {
+  background: var(--vscode-button-secondaryHoverBackground, rgba(128, 128, 128, 0.35));
+}
+
+.actions button.primary,
+#btn-native {
+  background: var(--vscode-button-background, #007acc);
+  color: var(--vscode-button-foreground, #fff);
+}
+
+.actions button.primary:hover,
+#btn-native:hover {
+  background: var(--vscode-button-hoverBackground, #0062a3);
+}
+
+.actions button.go {
+  background: var(--vscode-button-background, #007acc);
+  color: var(--vscode-button-foreground, #fff);
+}
+
+.actions button.go:hover:not(:disabled) {
+  background: var(--vscode-button-hoverBackground, #0062a3);
+}
+
+.actions button.ghost {
+  background: transparent;
+  border-color: var(--vscode-input-border, rgba(128, 128, 128, 0.4));
+}
+
+.actions button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+/* ---------------- status ---------------- */
+
+.status {
+  flex: 0 0 auto;
+  min-height: 0;
+  font-size: 11px;
+  color: var(--vscode-descriptionForeground);
+}
+
+.status:empty {
+  display: none;
+}
+
+.status.error {
+  color: var(--vscode-errorForeground, #f48771);
+}
+
+/* ---------------- list ---------------- */
+
+.list-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex: 0 0 auto;
+  padding: 3px 0 4px;
+  font-size: 11px;
+  color: var(--vscode-descriptionForeground);
+  border-top: 1px solid var(--vscode-panel-border, rgba(128, 128, 128, 0.2));
+}
+
+.list-head label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.head-right {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.mini {
+  padding: 1px 6px;
+  background: transparent;
+  color: var(--vscode-descriptionForeground);
+  border: 1px solid var(--vscode-input-border, rgba(128, 128, 128, 0.35));
+  border-radius: 2px;
+  font-family: inherit;
+  font-size: 10px;
+  cursor: pointer;
+}
+
+.mini:hover {
+  background: var(--vscode-toolbar-hoverBackground, rgba(128, 128, 128, 0.15));
+  color: var(--vscode-foreground);
+}
+
+.list {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.list::-webkit-scrollbar {
+  width: 10px;
+}
+
+.list::-webkit-scrollbar-thumb {
+  background: var(--vscode-scrollbarSlider-background, rgba(128, 128, 128, 0.4));
+}
+
+.row {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  padding: 2px 2px;
+  border-bottom: 1px solid var(--vscode-panel-border, rgba(128, 128, 128, 0.1));
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.row[hidden] {
+  display: none;
+}
+
+.row:hover {
+  background: var(--vscode-list-hoverBackground, rgba(128, 128, 128, 0.1));
+}
+
+.row.conflict {
+  background: var(--vscode-inputValidation-warningBackground, rgba(255, 200, 0, 0.08));
+  border-left: 2px solid var(--vscode-editorWarning-foreground, #cca700);
+}
+
+/* 分组头（被改名的文件夹）：整棵子树都会跟着移动 */
+.row.group {
+  background: var(--vscode-sideBarSectionHeader-background, rgba(128, 128, 128, 0.08));
+  border-bottom-color: var(--vscode-panel-border, rgba(128, 128, 128, 0.25));
+}
+
+.row.group .names {
+  font-weight: 600;
+}
+
+/* 展开/折叠箭头 */
+.caret {
+  flex: 0 0 auto;
+  align-self: center;
+  width: 12px;
+  font-size: 9px;
+  color: var(--vscode-descriptionForeground);
+  cursor: pointer;
+  user-select: none;
+  text-align: center;
+}
+
+.caret.spacer {
+  cursor: default;
+}
+
+/* 缩进参考线：给子级左侧加一条竖线 */
+.row.leaf,
+.row.group[data-depth]:not([data-depth='0']) {
+  position: relative;
+}
+
+.row[data-depth]:not([data-depth='0'])::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--vscode-tree-indentGuidesStroke, rgba(128, 128, 128, 0.25));
+}
+
+.row input[type='checkbox'] {
+  flex: 0 0 auto;
+  margin: 0;
+  align-self: center;
+}
+
+.row.group input[type='checkbox']:indeterminate {
+  outline: 1px dashed var(--vscode-focusBorder, #007acc);
+  outline-offset: 1px;
+}
+
+.row .body {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.row .path {
+  color: var(--vscode-descriptionForeground);
+  font-size: 11px;
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  direction: rtl;
+  text-align: left;
+}
+
+/*
+ * 名字行：旧名 → 新名。
+ *
+ * 两版教训叠在一起：
+ *  - 第一版 `flex-wrap: wrap` + `word-break: break-all`：长名字折成三四行，太挤。
+ *  - 第二版 `nowrap` + 整行 `text-overflow: ellipsis`：不折行了，但把**新名**截掉了
+ *    —— 恰好截在最需要确认的那部分（`→ ot_bo…`）。
+ *
+ * 现在按「谁更重要」分配宽度：**新名永不截断，旧名负责让位**。
+ * 空间不足时 flex 会把缺口全部算到 `.name-old` 头上（因为 `.name-new` 是 0 0 auto），
+ * 于是永远保持一行，且结果永远完整。悬停有完整路径 tooltip 兜底。
+ */
+.row .names {
+  display: flex;
+  align-items: baseline;
+  min-width: 0;
+  white-space: nowrap;
+  font-family: var(--vscode-editor-font-family, monospace);
+  line-height: 1.4;
+}
+
+/*
+ * 宽度分配：**新名优先，旧名先让位**。
+ *
+ * 关键是两侧的 `flex-shrink` 权重差异：flex 的收缩量是按
+ * `shrink 系数 × base 宽度` 的比例分配的。给旧名一个远大于新名的系数
+ * （999 : 1），缺口就几乎全部由旧名吸收 —— 等价于「先缩旧名」。
+ *
+ * 而新名保留 `shrink: 1` 是**兜底**：当旧名已经被压到 0 仍放不下时
+ * （新名本身就比整行还长），新名才开始省略号，而不是硬撑出横向溢出。
+ * 这是实测发现的：`flex: 0 0 auto` 的新名在超长时会顶破行宽。
+ */
+.name-old {
+  flex: 0 999 auto;
+  /* 不给 0：极端情况下旧名被压到 0 会只剩一个孤零零的箭头，看着像渲染坏了。
+     留 2ch 刚好够显示一个省略号，明确表达"这里原本有东西"。 */
+  min-width: 2ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.name-new {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.row .names .arrow {
+  flex: 0 0 auto;
+  padding: 0 4px;
+}
+
+/* 容器头（纯目录分组）的条目数标记 */
+.names.count {
+  color: var(--vscode-descriptionForeground);
+  font-family: var(--vscode-font-family);
+  font-size: 11px;
+}
+
+/* 容器头是分组，不是待改名的文件夹 —— 不要加粗、不要抢视觉焦点 */
+.row.container .names.count,
+.row.container .path {
+  font-weight: 400;
+}
+
+.row.container .path {
+  color: var(--vscode-foreground);
+}
+
+.row.container {
+  background: transparent;
+}
+
+/*
+ * 分组头的文件夹字形。
+ *
+ * 用 CSS 画而不是 emoji：`📁` 在等宽字体里约占 16px，而它传达的信息只有
+ * 「这是个目录」—— 而分组头本来就只有目录，所以用 10px 的细字形足够，
+ * 省下的宽度全部留给文件名。
+ *
+ * 叶子行不再画任何图标：树里叶子必然是文件，📄 是冗余信息。
+ */
+.icon {
+  flex: 0 0 auto;
+  align-self: center;
+  position: relative;
+  width: 10px;
+  height: 9px;
+  color: var(--vscode-foreground);
+}
+
+.icon.dir::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 4px;
+  height: 3px;
+  background: currentColor;
+  opacity: 0.5;
+  border-radius: 1px 1px 0 0;
+}
+
+.icon.dir::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 2px;
+  right: 0;
+  bottom: 0;
+  border: 1px solid currentColor;
+  opacity: 0.5;
+  border-radius: 1px;
+}
+
+/* 单条目目录的行内前缀：比正文更淡，一眼能和文件名区分开 */
+.dir-hint {
+  color: var(--vscode-descriptionForeground);
+  opacity: 0.85;
+}
+
+.del {
+  color: var(--vscode-gitDecoration-deletedResourceForeground, #f48771);
+  text-decoration: line-through;
+  text-decoration-thickness: 1px;
+}
+
+.ins {
+  color: var(--vscode-gitDecoration-addedResourceForeground, #89d185);
+  font-weight: 600;
+}
+
+.arrow {
+  color: var(--vscode-descriptionForeground);
+  font-size: 11px;
+}
+
+.warn-msg {
+  color: var(--vscode-editorWarning-foreground, #cca700);
+  font-size: 11px;
+}
+
+.empty {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  text-align: center;
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--vscode-descriptionForeground);
+}
+
+kbd {
+  padding: 1px 4px;
+  background: var(--vscode-textCodeBlock-background, rgba(128, 128, 128, 0.2));
+  border: 1px solid var(--vscode-panel-border, rgba(128, 128, 128, 0.3));
+  border-radius: 3px;
+  font-family: var(--vscode-editor-font-family, monospace);
+  font-size: 11px;
+}
+
+/* ---------------- busy overlay ---------------- */
+
+#root.busy .list,
+#root.busy .list-head {
+  opacity: 0.5;
+  pointer-events: none;
+}
