@@ -19,9 +19,9 @@ VSCode 自带的重命名只能一个个来，原生搜索的「替换」只改�
 2. 在 VSCode 里按 `Ctrl+Shift+X` 打开扩展面板 → 点右上角 `…` → **从 VSIX 安装…** → 选中刚下载的文件；
 3. 装完若没立刻生效，按 `Ctrl+Shift+P` 执行 `Developer: Reload Window`。
 
-也可以用命令行装（在 `.vsix` 所在目录执行）：
+也可以用命令行装（在 `.vsix` 所在目录执行，把 `x.y.z` 换成你下载到的版本）：
 
-`code --install-extension search-and-rename-0.1.0.vsix`
+`code --install-extension search-and-rename-x.y.z.vsix`
 
 ### 从扩展市场安装
 
