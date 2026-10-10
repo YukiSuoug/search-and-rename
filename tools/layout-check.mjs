@@ -70,6 +70,8 @@ const SCENARIOS = [
   { name: '常规文件名（应全部完整）', result: makeRows('029', '1'), expectNewComplete: true },
   // 核心场景：旧名必须让位，新名保持完整
   { name: '旧名让位（新名须完整）', result: makeRows('029_longname', '1_long', FIXTURES_LONG), expectNewComplete: true, expectOldYields: true },
+  // 同一批数据、但打开「换行」开关：应当不再截断任何一侧，而是折行
+  { name: '开启换行（不截断，改折行）', result: makeRows('029_longname', '1_long', FIXTURES_LONG), wrap: true, expectWrap: true },
   // 极端场景：新名本身就比整行还长。此时允许截断新名，但绝不能顶破行宽
   { name: '新名超长（须优雅降级）', result: makeRows('029', '1_' + 'x'.repeat(60)), expectNewComplete: false, expectOldYields: true },
 ];
@@ -112,6 +114,7 @@ const SKELETON = `
         <span id="count"></span>
         <button id="btn-expand" class="mini">展开</button>
         <button id="btn-collapse" class="mini">折叠</button>
+        <button id="btn-wrap" class="mini" aria-pressed="false">换行</button>
       </div>
     </div>
     <div id="list" class="list"></div>
@@ -141,6 +144,10 @@ const html = `<!DOCTYPE html>
     window.dispatchEvent(new MessageEvent('message', {
       data: { type: 'previewResult', result: s.result },
     }));
+  };
+  window.__setWrap = (on) => {
+    const btn = document.getElementById('btn-wrap');
+    if (btn && btn.classList.contains('on') !== !!on) btn.click();
   };
 <\/script>
 ${SKELETON}
@@ -276,10 +283,30 @@ async function run() {
   const rowsVisible = await evalJs('document.querySelectorAll("#list .row").length === 0');
   check('初始状态列表为空', rowsVisible);
 
+  /*
+   * 预检：panel.js 引用的每个元素 id，都必须存在于本页的骨架里。
+   *
+   * 这个骨架是**手抄**真实 panelProvider.html() 的，很容易脱节。而一旦缺了元素，
+   * `panel.js` 会在 `$('x').addEventListener(...)` 处抛异常；由于那行在初始化代码之前，
+   * **整个初始化会静默中断** —— 列表照旧渲染（消息监听已注册），异常只出现在控制台，
+   * 极难察觉。（本工具的换行开关就因此第一次跑测试时完全没生效。）
+   */
+  const panelSrc = fs.readFileSync(path.join(ROOT, 'media', 'panel.js'), 'utf8');
+  const neededIds = [...new Set([...panelSrc.matchAll(/\$\('([^']+)'\)/g)].map((m) => m[1]))];
+  const missingIds = await evalJs(
+    `${JSON.stringify(neededIds)}.filter((id) => !document.getElementById(id))`
+  );
+  check(
+    `测试骨架包含 panel.js 引用的全部元素（共 ${neededIds.length} 个）`,
+    Array.isArray(missingIds) && missingIds.length === 0,
+    `缺失：${Array.isArray(missingIds) ? missingIds.join(', ') : String(missingIds)}`
+  );
+
   console.log(`\n面板宽度 ${WIDTH}px（模拟 VSCode 侧边栏）\n`);
 
   for (let s = 0; s < SCENARIOS.length; s++) {
     const sc = SCENARIOS[s];
+    await evalJs(`window.__setWrap(${!!sc.wrap})`);
     await evalJs(`window.__inject(${s})`);
     await sleep(120);
     const m = await evalJs(MEASURE);
@@ -296,11 +323,19 @@ async function run() {
       const state = r.group || r.container
         ? ''
         : `${r.newTrunc ? '新名截断' : '新名完整'}${r.oldTrunc ? ' / 旧名让位' : ''}`;
-      console.log(`   ${String(r.rowH).padStart(3)}px ${String(r.lines)}行 ${kind} ${state.padEnd(18)} ${r.text}`);
+      console.log(`   ${String(r.rowH).padStart(3)}px ${String(r.lines)}行 ${kind} ${state}`);
     }
 
-    // 1) 永远单行 —— 从「折成三四行」那次回归里学到的底线
-    check('所有叶子行都是单行（不折行）', leaves.every((r) => r.lines <= 1));
+    if (sc.wrap) {
+      // 换行模式的契约与紧凑模式**正好相反**：必须真的折行，且不再截断任何一侧
+      check('换行模式下确实折行了（行数 ≥ 2）', leaves.some((r) => r.lines >= 2));
+      check('换行模式下旧名不再被截断', leaves.every((r) => r.oldTrunc === false),
+        leaves.filter((r) => r.oldTrunc).map((r) => r.oldText).join(' | '));
+      check('换行模式下新名仍完整', leaves.every((r) => r.newTrunc === false));
+    } else {
+      // 紧凑模式的底线：单行（「折成三四行」是我们专门修过的回归）
+      check('紧凑模式：所有叶子行都是单行', leaves.every((r) => r.lines <= 1));
+    }
 
     // 2) 盒子本身都不能越界（裁剪必须生效）
     check(
@@ -310,33 +345,62 @@ async function run() {
     check('行内没有横向溢出', !m.listOverflowX);
 
     // 3) 方案 B 的核心：新名在正常范围内必须完整可见
-    if (sc.expectNewComplete) {
+    // ⚠️ 用 `=== true` / `=== false` 而不是真值判断：
+    //    `!undefined === true` 会让"没配置这个标志"的场景误跑到极端分支 —— 踩过。
+    if (sc.expectNewComplete === true) {
       const bad = leaves.filter((r) => r.newTrunc);
       check('新名完整（未被省略）', bad.length === 0, bad.map((r) => `${r.newText}`).join(' | '));
     }
 
     // 4) 旧名确实是「先让位」的那一侧
-    if (sc.expectOldYields) {
+    if (sc.expectOldYields === true) {
       check('旧名确实让了位（被省略）', leaves.some((r) => r.oldTrunc));
     }
 
     // 5) 极端超长时允许截断新名 —— 但必须是"省略号"而不是"溢出"
-    if (!sc.expectNewComplete) {
+    if (sc.expectNewComplete === false) {
       check(
         '极长新名走省略号而非撑破行宽',
         leaves.every((r) => r.newTrunc) && !m.listOverflowX
       );
     }
+
+    // 6) 列表头必须单行：窄侧边栏下按钮不能被挤成竖排文字
+    //    （加第三个视图按钮时真的踩过 —— 「展开」变成竖排的「展/开」）
+    if (s === 0) {
+      const head = await evalJs(`(() => {
+        const h = document.getElementById('list-head');
+        const btns = [...h.querySelectorAll('.mini')];
+        const count = document.getElementById('count');
+        return {
+          headH: Math.round(h.getBoundingClientRect().height),
+          maxBtnH: Math.max(0, ...btns.map((b) => Math.round(b.getBoundingClientRect().height))),
+          btnCount: btns.length,
+          countTruncated: count.scrollWidth > count.clientWidth + 1,
+        };
+      })()`);
+      check('列表头有 3 个视图按钮（展开 / 折叠 / 换行）', head.btnCount === 3, `实际 ${head.btnCount}`);
+      check('列表头按钮没有被挤成竖排', head.maxBtnH <= 22, `按钮最高 ${head.maxBtnH}px`);
+      console.log(
+        `   （列表头高 ${head.headH}px；条目数${head.countTruncated ? '已按需截断' : '完整显示'}）`
+      );
+    }
     console.log('');
   }
 
-  // 截图取「常规文件名」场景（最有代表性），而不是最后那个刻意荒谬的超长用例
-  await evalJs('window.__inject(0)');
-  await sleep(150);
-  const shot = await cdp.send('Page.captureScreenshot', { format: 'png' });
-  const shotPath = path.join(ROOT, 'tmp-layout-check.png');
-  fs.writeFileSync(shotPath, Buffer.from(shot.data, 'base64'));
-  console.log(`截图（场景 1：常规文件名）：${shotPath}`);
+  // 两种模式各截一张，便于肉眼核对（用常规文件名场景，最有代表性）
+  for (const shot of [
+    { wrap: false, file: 'tmp-layout-check.png', label: '紧凑模式' },
+    { wrap: true, file: 'tmp-layout-check-wrap.png', label: '换行模式' },
+  ]) {
+    await evalJs(`window.__setWrap(${shot.wrap})`);
+    await evalJs('window.__inject(0)');
+    await sleep(150);
+    const { data } = await cdp.send('Page.captureScreenshot', { format: 'png' });
+    const p = path.join(ROOT, shot.file);
+    fs.writeFileSync(p, Buffer.from(data, 'base64'));
+    console.log(`截图（${shot.label}）：${p}`);
+  }
 }
 
 try {

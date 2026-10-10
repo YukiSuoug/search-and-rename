@@ -263,8 +263,10 @@ select:focus {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: 6px;
   flex: 0 0 auto;
+  /* 允许内部截断：窄侧边栏下由「条目数」让位，而不是把按钮挤成竖排 */
+  min-width: 0;
   padding: 3px 0 4px;
   font-size: 11px;
   color: var(--vscode-descriptionForeground);
@@ -275,17 +277,38 @@ select:focus {
   display: inline-flex;
   align-items: center;
   gap: 4px;
+  flex: 0 0 auto;
+  white-space: nowrap;
   cursor: pointer;
   user-select: none;
 }
 
+/*
+ * 右侧一组：条目数 + 三个视图按钮。
+ *
+ * ⚠️ 三个按钮必须 `flex: 0 0 auto` + `nowrap`，条目数则允许被压缩截断。
+ * 反过来的话（按钮可压缩）窄侧边栏下每个按钮的文字会各自折成两行 ——
+ * 「展开」变成竖排的「展/开」，非常难看。实测踩过。
+ */
 .head-right {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
+  flex: 0 1 auto;
+  min-width: 0;
+}
+
+#count {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .mini {
+  flex: 0 0 auto;
+  white-space: nowrap;
   padding: 1px 6px;
   background: transparent;
   color: var(--vscode-descriptionForeground);
@@ -464,6 +487,68 @@ select:focus {
 .row .names .arrow {
   flex: 0 0 auto;
   padding: 0 4px;
+}
+
+/*
+ * 换行模式（可选，默认关闭）。
+ *
+ * 关闭时（默认）：旧名让位、新名完整、每行固定一行 —— 行高统一才好快速扫视。
+ * 打开时：整段「旧名 → 新名」自然折行，一个字都不缺，代价是行高不固定、
+ *         一屏能看的条目变少。
+ *
+ * 这里不改变 DOM，只切换 `.wrap` 类 —— 所以开关是纯展示层的，
+ * 不参与预览计算，也不会影响执行结果。
+ */
+.list.wrap .row {
+  align-items: flex-start;
+}
+
+.list.wrap .names {
+  flex-wrap: wrap;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+/* 关掉两侧的「截断」语义，让文字自然流动 */
+.list.wrap .name-old,
+.list.wrap .name-new {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+/* 分组头的目录路径也一并放开（默认为了保留尾部而做了左侧省略） */
+.list.wrap .row .path {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+  direction: ltr;
+  text-align: left;
+  /*
+   * ⚠️ 这一行不能少。目录路径是一串没有空格的 token（`nativePC/otomo/equip/...`），
+   * 按 UAX #14 的断行规则，`/` 后面未必是合法的换行点 —— 于是它会整串不折行，
+   * 加上这里是 `overflow: visible` 不会被裁剪，就直接把列表撑出横向滚动。
+   * 实测踩过：换行模式下唯一失败的就是这条。
+   */
+  overflow-wrap: anywhere;
+}
+
+/* 多行时复选框和图标贴首行，不要垂直居中 */
+.list.wrap .row input[type='checkbox'],
+.list.wrap .row .icon,
+.list.wrap .row .caret {
+  align-self: flex-start;
+  margin-top: 2px;
+}
+
+/* 按钮的开启态（复用 .toggle 的高亮色） */
+.mini.on {
+  background: var(--vscode-inputOption-activeBackground, rgba(0, 122, 204, 0.4));
+  color: var(--vscode-inputOption-activeForeground, #fff);
+  border-color: var(--vscode-inputOption-activeBorder, #007acc);
 }
 
 /* 容器头（纯目录分组）的条目数标记 */

@@ -352,6 +352,12 @@ export class SearchRenamePanel implements vscode.WebviewViewProvider {
           <span id="count"></span>
           <button id="btn-expand" class="mini" title="全部展开">展开</button>
           <button id="btn-collapse" class="mini" title="全部折叠">折叠</button>
+          <button
+            id="btn-wrap"
+            class="mini"
+            aria-pressed="false"
+            title="名字过长时换行显示。关闭时旧名会被省略，但新名始终完整（悬停可看完整路径）"
+          >换行</button>
         </div>
       </div>
       <div id="list" class="list"></div>

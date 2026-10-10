@@ -469,11 +469,63 @@ check(
   'panel.css 的名字行是 nowrap（不再折行）',
   /\.row \.names\s*\{[^}]*white-space:\s*nowrap/s.test(css)
 );
+// 换行模式是**可选**的，默认必须关：紧凑模式下行高统一才好快速扫视，
+// 而且紧凑模式下「新名已经永远完整」，被省略的只有旧名。
+// 这里钉住四件事：规则存在、确实放开了截断、状态被持久化、默认是 false。
+check('panel.css 有换行模式规则（.list.wrap）', /\.list\.wrap\s+\.names\s*\{/s.test(css));
+check(
+  'panel.css 换行模式放开了两侧截断',
+  /\.list\.wrap\s+\.name-new\s*\{[^}]*overflow:\s*visible/s.test(css)
+);
+check('panel.js 有换行开关 applyWrap', /function applyWrap\s*\(/.test(js));
+check('panel.js 换行状态被持久化', /wrap:\s*state\.wrap/.test(js));
+check('panel.js 换行默认关闭', /wrap:\s*false/.test(js));
+check('panel.js 启动时会应用换行状态', /applyWrap\(\);/.test(js));
+
 // 叶子行不再画图标（树里叶子必然是文件，图标是冗余信息，还占 ~16px）
 check(
   'panel.js 不再给叶子行加文件图标',
   !/row\.isDirectory\s*\?\s*'📁'\s*:\s*'📄'/.test(js)
 );
+
+// ⚠️ 最关键的一条：**前端脚本引用的每个元素 id，都必须真实存在于 webview HTML 里**。
+//
+// 踩过的坑：`tools/layout-check.mjs` 里的面板骨架是手抄的，加了新元素却忘了同步，
+// 结果 `panel.js` 在 `$('btn-wrap').addEventListener(...)` 处抛异常 ——
+// 而那行在初始化代码**之前**，于是整个初始化静默中断（列表照旧渲染，所以看不出异常）。
+// 这类"元素不存在 → 整段脚本挂掉"的问题，靠这条交叉核对可以彻底堵住。
+console.log('\n— webview HTML × 前端脚本 的元素 id 交叉核对 —');
+try {
+  const mod = load('panelProvider') as { SearchRenamePanel: { prototype: object } };
+  const proto = mod.SearchRenamePanel.prototype as { html: (w: unknown) => string };
+
+  const fakePanel = Object.create(proto) as Record<string, unknown>;
+  fakePanel.ctx = { extensionUri: fakeUri('/ext') };
+  const fakeWebview = { asWebviewUri: () => 'RESOURCE', cspSource: 'vscode-resource:' };
+
+  const panelHtml = proto.html.call(fakePanel, fakeWebview);
+  check('能取到 webview HTML', panelHtml.includes('<div id="root">'));
+
+  const htmlIds = new Set([...panelHtml.matchAll(/id="([^"]+)"/g)].map((m) => m[1]));
+  const jsIds = new Set([...js.matchAll(/\$\('([^']+)'\)/g)].map((m) => m[1]));
+
+  check('panel.js 里能解析出元素引用', jsIds.size > 0, `解析到 ${jsIds.size} 个`);
+
+  const missing = [...jsIds].filter((id) => !htmlIds.has(id));
+  check(
+    'panel.js 引用的元素在 HTML 里都存在',
+    missing.length === 0,
+    `缺失：${missing.join(', ')}（新增元素时忘了同步 panelProvider.html()？）`
+  );
+
+  // 反向：按钮类的元素不该是"定义了但前端从没引用"——多半是拼错了 id
+  const unusedButtons = [...htmlIds].filter(
+    (id) => id.startsWith('btn-') && id !== 'btn-native' && !jsIds.has(id)
+  );
+  check('没有定义了却没人引用的按钮 id', unusedButtons.length === 0, unusedButtons.join(', '));
+} catch (e) {
+  check('webview HTML 交叉核对', false, (e as Error).message);
+}
 
 /* ------------------------- 5. 汇总 ------------------------- */
 

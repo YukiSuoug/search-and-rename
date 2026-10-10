@@ -22,6 +22,8 @@
     items: [],
     rows: [],
     collapsed: {},
+    /** 换行模式：名字过长时折行显示（默认关，行高统一才好扫视） */
+    wrap: false,
   };
 
   /** 恢复 Webview 被隐藏后要保留的 UI 状态 */
@@ -200,10 +202,13 @@
     $('empty').hidden = true;
     // 只统计「自身会被改名的文件夹」；容器头只是目录分组，不算在内
     const renamedDirCount = state.rows.filter((r) => r.isGroup && !r.isContainer).length;
-    $('count').textContent =
+    const countText =
       `${state.items.length} 项` +
       (renamedDirCount > 0 ? ` · ${renamedDirCount} 个文件夹` : '') +
       (result.conflictCount > 0 ? ` · ${result.conflictCount} 项冲突` : '');
+    $('count').textContent = countText;
+    // 窄侧边栏下这段会被压缩截断（按钮优先），悬停给出完整文本
+    $('count').title = countText;
 
     const frag = document.createDocumentFragment();
     for (const row of state.rows) {
@@ -613,14 +618,39 @@
       items: state.items,
       rows: state.rows,
       collapsed: state.collapsed,
+      wrap: state.wrap,
       config: state.config,
     });
   }
+
+  /* --------------------------- 换行开关 --------------------------- */
+
+  /**
+   * 换行模式：纯展示层开关，只切一个 class。
+   *
+   * 刻意不做成"永远换行"：默认紧凑能保持行高统一、便于快速扫视，
+   * 而紧凑模式下**新名已经永远完整**（被省略的只有旧名，悬停有完整路径），
+   * 所以换行只在"我要核对旧名"时才需要。
+   * 想常开的人打开一次即可 —— 状态会被持久化，体验上等同于永远换行。
+   */
+  function applyWrap() {
+    const on = !!state.wrap;
+    $('list').classList.toggle('wrap', on);
+    $('btn-wrap').classList.toggle('on', on);
+    $('btn-wrap').setAttribute('aria-pressed', String(on));
+  }
+
+  $('btn-wrap').addEventListener('click', () => {
+    state.wrap = !state.wrap;
+    persist();
+    applyWrap();
+  });
 
   /* --------------------------- init ------------------------------- */
 
   syncToggles();
   setMode(state.mode || 'rename');
+  applyWrap();
   updateButtons();
   if (state.rows && state.rows.length > 0) {
     render({
